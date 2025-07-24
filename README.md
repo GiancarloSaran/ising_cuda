@@ -1,15 +1,5 @@
 # Parallel 2D Ising - Modern Computing for Physics 
 ![Ising Model](postproc/plots/spin.png)
-
-<div style="display: flex; justify-content: space-between;">
-  <div>
-    <img src="postproc/plots/magnetization.svg" alt="magnetization" style="width: 100%;">
-  </div>
-  <div>
-    <img src="postproc/plots/energy.svg" alt="energy" style="width: 100%;">
-  </div>
-</div>
-
 Monte Carlo simulation of the 2D Ising model implementing both sequential C and parallel CUDA versions. The Glauber (single spin) Metropolis proposal is parallelized with checkerboard decomposition for race-free updates, optimized CUDA kernels with shared memory and coalesced access patterns, and parallel reduction for energy and magnetization calculations. The code was built and tested on the Jetson Nano board.
 
 ## File Structure
