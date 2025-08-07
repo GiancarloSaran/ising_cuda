@@ -27,7 +27,8 @@ def launch_ising(N=512, block_size=128, T=2, J=1, h=0, steps=1000, use_lut=True,
     return result 
 
 # Temperature sweep
-N_space = [32, 64, 128, 256, 512, 1024]
+N_space = [32, 64, 128, 256, 512, 1024, 2048, 4096]
+
 
 for i, N in enumerate(N_space):
     launch_ising(N=N)
@@ -35,7 +36,7 @@ for i, N in enumerate(N_space):
 
 print("Lattice size sweep completed")
 
-block_sizes = [32, 64, 128]
+block_sizes = [32, 64, 128, 256, 512, 1024]
 for i, b in enumerate(block_sizes):
     launch_ising(block_size=b)
 

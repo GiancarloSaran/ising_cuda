@@ -15,7 +15,7 @@ def launch_ising_serial(N, T=2, J=1, h=0, steps=1000, executable_path="../bin/se
     subprocess.run(cmd, check=True)
 
 if __name__ == "__main__":
-    N_space = [32, 64, 128, 256, 512, 1024]
+    N_space = [32, 64, 128, 256, 512, 1024, 2048, 4096]
     for i, N in enumerate(N_space):
         print(f"[{i+1}/{len(N_space)}] ", end="")
         launch_ising_serial(N=N)
