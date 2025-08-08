@@ -50,6 +50,7 @@ void print_usage(const char* program_name) {
     printf("  --seed <seed>         Random seed (default: time-based)\n");
     printf("  --hot                 Hot start (random spins, default: cold start)\n");
     printf("  --no-lut              Disable lookup tables\n");
+    printf("  --save-physics        Save MCMC\n");
     printf("  --block-size <size>   CUDA block size (default: 256)\n");
     printf("  --print-freq <freq>   Print frequency (default: steps/10)\n");
     printf("  --help                Show this help message\n");

@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     bool use_lut = true;
     int block_size = BLOCK_SIZE; //Start with default block size (128)
     int print_freq = 0; //Print every result 10 times per chain
-    bool disable_physics_save = true; //Don't save MCMC samples, performance benchmark mode
+    bool save_physics = false; //Don't save MCMC samples, performance benchmark mode
     int perf_freq = 200; //Calculate performance results every 200 steps
 
     // Command line argument parsing
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
         {"block-size", required_argument, 0, 1003},
         {"print-freq", required_argument, 0, 1004},
         {"help", no_argument, 0, 1005},
-        {"disable-physics", no_argument, 0, 1006},
+        {"save-physics", no_argument, 0, 1006},
         {"perf-freq", required_argument, 0, 1007},
         {0, 0, 0, 0}
     };
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
                 print_usage(argv[0]);
                 return 0;
             case 1006: // disable-physics
-                disable_physics_save = true;
+                save_physics = true;
                 break;
             case 1007: // perf-freq
                 perf_freq = atoi(optarg);
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
     
     //Initialize savers
     DataSaver* saver = nullptr;
-    if (!disable_physics_save){
+    if (save_physics){
         DataSaver* saver = init_data_saver(output_filename, 100);  // Save states every 100 steps
     }
     PerformanceMetrics* perf_metrics = init_performance_metrics(output_filename, N, T, J, h, 
