@@ -2,7 +2,7 @@ import numpy as np
 import subprocess
 import os
 
-def launch_ising(N=512, block_size=128, T=2, J=1, h=0, steps=1000, use_lut=True, executable_path="../bin/parallel"):
+def launch_ising(N=4096, block_size=128, T=2, J=1, h=0, steps=1000, use_lut=True, executable_path="../bin/parallel"):
     # Check if executable exists
     if not os.path.exists(executable_path):
         print(f"Error: Executable not found at {executable_path}")

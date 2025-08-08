@@ -39,17 +39,17 @@ def launch_ising(T, N=512, J=1, h=0, steps=10000, executable_path="../bin/parall
     try:
         # Run the simulation
         result = subprocess.run(cmd, check=True)
-        print(f"✓ Completed T={T:.3f}")
+        print(f"Completed T={T:.3f}")
         return result.returncode
         
     except subprocess.CalledProcessError as e:
-        print(f"✗ Error running simulation at T={T:.3f}: {e}")
+        print(f"Error running simulation at T={T:.3f}: {e}")
         return e.returncode
     except FileNotFoundError:
-        print(f"✗ Executable not found: {executable_path}")
+        print(f"Executable not found: {executable_path}")
         return 1
     except Exception as e:
-        print(f"✗ Unexpected error at T={T:.3f}: {e}")
+        print(f"Unexpected error at T={T:.3f}: {e}")
         return 1
 
 # Temperature sweep

@@ -30,24 +30,27 @@ curandState *d_black_states, *d_white_states;
 
 void compute_observables(signed char *d_black, signed char *d_white, 
                            float *dM_block_results, float *dE_block_results,
-                           int nrow, int ncol, float J, float h, 
+                           int nrow, int ncol, int block_size, float J, float h, 
                            float *magnetization, float *energy) {
     int n_elements = nrow * ncol/2;
-    int num_blocks = (n_elements + 2*BLOCK_SIZE - 1) / (2*BLOCK_SIZE);
-    
+    int num_blocks = (n_elements + 2*block_size - 1) / (2*block_size);
+    size_t shared_size = 2 * block_size * sizeof(float);
+
     // black magnetization
-    block_sum<<<num_blocks, BLOCK_SIZE>>>(d_black, d_white, dM_block_results, nrow, ncol/2, true, false);
+    block_sum<<<num_blocks, block_size, shared_size>>>(d_black, d_white, dM_block_results, nrow, ncol/2, true, false);
+    // ILLEGAL MEMORY ACCESS HERE!!
+
     CUDA_CHECK(cudaDeviceSynchronize());
     float black_sum = complete_reduction(dM_block_results, num_blocks);
     
     // white magnetization 
-    block_sum<<<num_blocks, BLOCK_SIZE>>>(d_white, d_black, dM_block_results, nrow, ncol/2, false, false);
+    block_sum<<<num_blocks, block_size, shared_size>>>(d_white, d_black, dM_block_results, nrow, ncol/2, false, false);
     CUDA_CHECK(cudaDeviceSynchronize());
     float white_sum = complete_reduction(dM_block_results, num_blocks);    
     float tot_spin = black_sum + white_sum;
     
     // interaction energy (one color to avoid double counting)
-    block_sum<<<num_blocks, BLOCK_SIZE>>>(d_black, d_white, dE_block_results, nrow, ncol/2, true, true);
+    block_sum<<<num_blocks, block_size, shared_size>>>(d_black, d_white, dE_block_results, nrow, ncol/2, true, true);
     CUDA_CHECK(cudaDeviceSynchronize());
     
     float interaction_energy = complete_reduction(dE_block_results, num_blocks);
@@ -72,18 +75,18 @@ void compute_observables(signed char *d_black, signed char *d_white,
  */
 
 void MCMC_step(signed char *d_black, signed char *d_white, 
-               int nrow, int ncol, float beta, float J, float h, bool use_lut) {
+               int nrow, int ncol, int block_size, float beta, float J, float h, bool use_lut) {
     
     int n_elements = nrow * ncol/2;
-    int num_blocks = (n_elements + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks = (n_elements + block_size - 1) / block_size;
     
     // Update black sites
-    color_update<<<num_blocks, BLOCK_SIZE>>>(
+    color_update<<<num_blocks, block_size>>>(
         d_black, d_white, d_black_states, nrow, ncol/2, beta, J, h, use_lut, true);
     CUDA_CHECK(cudaDeviceSynchronize());
     
     // Update white sites
-    color_update<<<num_blocks, BLOCK_SIZE>>>(
+    color_update<<<num_blocks, block_size>>>(
         d_white, d_black, d_white_states, nrow, ncol/2, beta, J, h, use_lut, false);
     CUDA_CHECK(cudaDeviceSynchronize());
 }
@@ -216,7 +219,7 @@ int main(int argc, char *argv[]) {
     
     int max_blocks = (n_elements/2 + 2*block_size - 1) / (2*block_size);
     int rng_blocks = (n_elements/2 + block_size - 1) / block_size;
-    
+    printf("N blocks reduction: %d\n", max_blocks);
     CUDA_CHECK(cudaMalloc(&dM_block_results, max_blocks * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&dE_block_results, max_blocks * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_black_states, (n_elements / 2) * sizeof(curandState)));
@@ -252,11 +255,11 @@ int main(int argc, char *argv[]) {
     // Initial measurements
     float initial_magnetization;
     float initial_energy;
-    compute_observables(d_black, d_white, dM_block_results, dE_block_results, nrow, ncol, J, h,
+    compute_observables(d_black, d_white, dM_block_results, dE_block_results, nrow, ncol, block_size, J, h,
                         &initial_magnetization, &initial_energy);
     printf("Initial state:\n");
     printf("  Magnetization: %.6f\n", initial_magnetization);
-    printf("  Energy: %.6f\n", initial_energy);
+    printf("  Energy per site: %.6f\n", initial_energy / (nrow * ncol));
     printf("\nStarting MCMC simulation...\n");
     
     clock_t start_time = clock();
@@ -288,7 +291,7 @@ int main(int argc, char *argv[]) {
     for (int step = 0; step < n_steps; step++) {
         // Time MCMC step
         CUDA_CHECK(cudaEventRecord(mcmc_start));
-        MCMC_step(d_black, d_white, nrow, ncol, beta, J, h, use_lut);
+        MCMC_step(d_black, d_white, nrow, ncol, block_size, beta, J, h, use_lut);
         CUDA_CHECK(cudaEventRecord(mcmc_stop));
         CUDA_CHECK(cudaEventSynchronize(mcmc_stop));
         
@@ -297,7 +300,7 @@ int main(int argc, char *argv[]) {
         
         CUDA_CHECK(cudaEventRecord(obs_start));
         float magnetization, energy;
-        compute_observables(d_black, d_white, dM_block_results, dE_block_results, nrow, ncol, J, h,
+        compute_observables(d_black, d_white, dM_block_results, dE_block_results, nrow, ncol, block_size, J, h,
                             &magnetization, &energy);
         CUDA_CHECK(cudaEventRecord(obs_stop));
         CUDA_CHECK(cudaEventSynchronize(obs_stop));
@@ -340,17 +343,15 @@ int main(int argc, char *argv[]) {
     // Final measurements
     float final_magnetization;
     float final_energy;
-    compute_observables(d_black, d_white, dM_block_results, dE_block_results, nrow, ncol, J, h,
+    compute_observables(d_black, d_white, dM_block_results, dE_block_results, nrow, ncol, block_size, J, h,
                         &final_magnetization, &final_energy);
     
     printf("\nSimulation completed!\n");
     printf("Final state:\n");
     printf("  Magnetization: %.6f\n", final_magnetization);
-    printf("  Energy: %.6f\n", final_energy);
+    printf("  Energy per site: %.6f\n", final_energy / (nrow * ncol));
     printf("  Elapsed time: %.3f seconds\n", elapsed_time);
-    printf("  Performance: %.2f steps/second\n", n_steps / elapsed_time);
-    printf("  Throughput: %.2f Mspins/second\n", (n_steps * n_elements) / (elapsed_time * 1e6));
-    
+
     // Cleanup
     CUDA_CHECK(cudaFree(d_black));
     CUDA_CHECK(cudaFree(d_white));

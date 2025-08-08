@@ -208,9 +208,8 @@ __global__ void block_sum(signed char *color, signed char *op_color,
     int bx = blockIdx.x;
     int tx = threadIdx.x;
     int start_idx = 2 * bdim * bx;
+    extern __shared__ float sharedF[];  //We process 2*threads_per_block indices of the array
 
-    __shared__ float sharedF[2 * BLOCK_SIZE]; //We process 2*threads_per_block indices of the array
-    
     // We have to initialize to zero so that excess addresses don't influence the reduction
     sharedF[tx] = 0.0f;
     sharedF[tx + bdim] = 0.0f;

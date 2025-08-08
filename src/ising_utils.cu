@@ -23,6 +23,9 @@
 float complete_reduction(float *d_blockResults, int num_blocks) {
     //Move to host
     float *h_blockResults = (float*)malloc(num_blocks * sizeof(float));
+    if (h_blockResults == NULL){
+        printf("Failed to allocate block results\n");
+    }
     CUDA_CHECK(cudaMemcpy(h_blockResults, d_blockResults, num_blocks * sizeof(float), cudaMemcpyDeviceToHost));
     
     //Final reduction
@@ -69,7 +72,7 @@ DataSaver* init_data_saver(const char* base_filename, int state_freq) {
     
     snprintf(filename, sizeof(filename), "%s_energy.csv", base_filename);
     file_exists = (access(filename, F_OK) == 0);
-    saver->energy_file = fopen(filename, "a");  // ← Changed to append
+    saver->energy_file = fopen(filename, "a");
     if (!file_exists) {
         fprintf(saver->energy_file, "step,energy\n");
     }
